@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OutlineVectorizer - 画像輪郭抽出・SVG変換ツール</title>
+  <!-- Google Fonts: Outfit for headings, Inter for body -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons for premium visual feel -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script type="module" crossorigin src="/assets/index-USoV6Ms3.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-DuKv6Kkc.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar: Control Panel -->
+    <aside class="sidebar">
+      <header class="app-header">
+        <div class="logo">
+          <i data-lucide="pen-tool"></i>
+          <h1>OutlineVectorizer</h1>
+        </div>
+        <p class="subtitle">画像から輪郭を抽出し、綺麗なSVGベクターデータに変換します。</p>
+      </header>
+
+      <div class="control-sections">
+        <!-- Section 1: File Upload & Presets -->
+        <section class="control-card">
+          <h2 class="card-title"><i data-lucide="image"></i> 画像の選択</h2>
+          
+          <div id="dropzone" class="dropzone">
+            <input type="file" id="file-input" accept="image/*" class="file-input">
+            <div class="dropzone-content">
+              <i data-lucide="upload-cloud" class="upload-icon"></i>
+              <p class="upload-text">画像をドラッグ＆ドロップ</p>
+              <span class="upload-hint">またはファイルを選択（クリップボードから貼り付けも可）</span>
+            </div>
+          </div>
+
+          <div class="presets-container">
+            <span class="section-label">サンプルで試す:</span>
+            <div class="presets-grid">
+              <button class="preset-btn" data-preset="silhouette" title="シルエット (幾何学パターン)">
+                <canvas id="preset-canvas-silhouette" width="48" height="48"></canvas>
+                <span>幾何学</span>
+              </button>
+              <button class="preset-btn" data-preset="contour" title="輪郭 (花柄)">
+                <canvas id="preset-canvas-contour" width="48" height="48"></canvas>
+                <span>花柄</span>
+              </button>
+              <button class="preset-btn" data-preset="character" title="イラスト (ペン書き線画)">
+                <canvas id="preset-canvas-character" width="48" height="48"></canvas>
+                <span>線画</span>
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 2: Image Processing (Pre-processing) -->
+        <section class="control-card">
+          <h2 class="card-title"><i data-lucide="sliders"></i> 画像処理設定</h2>
+          
+          <div class="control-group">
+            <label class="control-label">抽出モード</label>
+            <div class="segmented-control">
+              <button class="segment-btn active" data-mode="contour">
+                <i data-lucide="activity"></i> 輪郭 (Sobel)
+              </button>
+              <button class="segment-btn" data-mode="threshold">
+                <i data-lucide="contrast"></i> 二値化 (黒塗り)
+              </button>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="slider-header">
+              <label for="threshold-slider" class="control-label">しきい値 (境界値)</label>
+              <span id="threshold-val" class="slider-value">128</span>
+            </div>
+            <input type="range" id="threshold-slider" min="0" max="255" value="128" class="range-slider">
+            <p class="control-hint" id="mode-hint">値が小さいほど多くの輪郭が抽出されます。</p>
+          </div>
+
+          <div class="control-group checkbox-group">
+            <label class="checkbox-label">
+              <input type="checkbox" id="invert-checkbox">
+              <span class="checkbox-custom"></span>
+              白黒反転 (対象物を黒にする)
+            </label>
+          </div>
+        </section>
+
+        <!-- Section 3: Vectorization (Potrace options) -->
+        <section class="control-card">
+          <h2 class="card-title"><i data-lucide="settings"></i> トレース設定 (Potrace)</h2>
+          
+          <div class="control-group">
+            <div class="slider-header">
+              <label for="turdsize-slider" class="control-label">ノイズ低減 (最小ドットサイズ)</label>
+              <span id="turdsize-val" class="slider-value">2</span>
+            </div>
+            <input type="range" id="turdsize-slider" min="0" max="100" value="2" class="range-slider">
+            <p class="control-hint">指定サイズ以下の細かいノイズ（ゴミ）を除去します。</p>
+          </div>
+
+          <div class="control-group">
+            <div class="slider-header">
+              <label for="alphamax-slider" class="control-label">曲線の滑らかさ (アルファ値)</label>
+              <span id="alphamax-val" class="slider-value">1.0</span>
+            </div>
+            <input type="range" id="alphamax-slider" min="0" max="1.3" step="0.1" value="1.0" class="range-slider">
+            <p class="control-hint">数値が大きいほど角が丸く、滑らかな曲線になります。</p>
+          </div>
+        </section>
+
+        <!-- Section 4: SVG Styles -->
+        <section class="control-card">
+          <h2 class="card-title"><i data-lucide="palette"></i> ベクターデザイン配色</h2>
+          
+          <div class="color-options-grid">
+            <!-- Background Fill -->
+            <div class="color-picker-item">
+              <span class="control-label">背景</span>
+              <div class="color-picker-row">
+                <button id="bg-transparent-btn" class="toggle-btn active" title="背景透明化">
+                  <i data-lucide="eye-off"></i>
+                </button>
+                <input type="color" id="bg-color" value="#ffffff" disabled>
+              </div>
+            </div>
+
+            <!-- Path Fill -->
+            <div class="color-picker-item">
+              <span class="control-label">塗りつぶし</span>
+              <div class="color-picker-row">
+                <button id="fill-transparent-btn" class="toggle-btn" title="塗りつぶしなし">
+                  <i data-lucide="eye-off"></i>
+                </button>
+                <input type="color" id="fill-color" value="#1a1a1a">
+              </div>
+            </div>
+
+            <!-- Path Stroke -->
+            <div class="color-picker-item">
+              <span class="control-label">輪郭線</span>
+              <div class="color-picker-row">
+                <button id="stroke-transparent-btn" class="toggle-btn active" title="線なし">
+                  <i data-lucide="eye-off"></i>
+                </button>
+                <input type="color" id="stroke-color" value="#6366f1" disabled>
+              </div>
+            </div>
+          </div>
+
+          <div class="control-group" id="stroke-width-group" style="display: none;">
+            <div class="slider-header">
+              <label for="stroke-width-slider" class="control-label">輪郭線の太さ</label>
+              <span id="stroke-width-val" class="slider-value">1.5px</span>
+            </div>
+            <input type="range" id="stroke-width-slider" min="0.5" max="10" step="0.1" value="1.5" class="range-slider">
+          </div>
+        </section>
+      </div>
+    </aside>
+
+    <!-- Main Content Area: Previews & Viewport -->
+    <main class="main-content">
+      <!-- Top Tab Navigation -->
+      <nav class="preview-tabs">
+        <button class="tab-btn active" data-tab="tab-vector">
+          <i data-lucide="sparkles"></i> ベクタープレビュー (SVG)
+        </button>
+        <button class="tab-btn" data-tab="tab-binary">
+          <i data-lucide="eye"></i> 処理中の中間画像 (二値)
+        </button>
+        <button class="tab-btn" data-tab="tab-code">
+          <i data-lucide="code"></i> SVGコード
+        </button>
+      </nav>
+
+      <!-- Preview Workspace Container -->
+      <div class="workspace-viewport">
+        <!-- Tab 1: Live SVG Viewport (with zoom and pan) -->
+        <div id="tab-vector" class="tab-content active">
+          <div class="viewport-canvas-wrapper" id="viewport-wrapper">
+            <div class="viewport-zoom-layer" id="zoom-layer">
+              <div id="svg-preview-container" class="svg-container">
+                <!-- Dynamically inserted SVG goes here -->
+                <div class="placeholder-message">
+                  <i data-lucide="image" class="placeholder-icon"></i>
+                  <p>画像をアップロードするか、サンプルをクリックして開始します。</p>
+                </div>
+              </div>
+            </div>
+            <!-- Interactive Pan/Zoom overlay UI -->
+            <div class="viewport-controls">
+              <button id="zoom-in-btn" class="viewport-btn" title="拡大"><i data-lucide="zoom-in"></i></button>
+              <button id="zoom-out-btn" class="viewport-btn" title="縮小"><i data-lucide="zoom-out"></i></button>
+              <button id="zoom-reset-btn" class="viewport-btn" title="表示リセット"><i data-lucide="refresh-cw"></i></button>
+            </div>
+            <div class="zoom-indicator" id="zoom-indicator">100%</div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Binary image (Intermediate state) -->
+        <div id="tab-binary" class="tab-content">
+          <div class="binary-preview-wrapper">
+            <div class="binary-canvas-container">
+              <canvas id="binary-canvas"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 3: Raw SVG code output -->
+        <div id="tab-code" class="tab-content">
+          <div class="code-output-wrapper">
+            <button id="copy-code-btn" class="code-action-btn">
+              <i data-lucide="copy"></i> コードをコピー
+            </button>
+            <pre><code id="svg-code-block" class="language-xml">&lt;!-- SVGコードがここに表示されます --&gt;</code></pre>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Footer: Exports & Download Actions -->
+      <footer class="action-footer">
+        <div class="info-badges">
+          <span class="badge" id="info-resolution"><i data-lucide="maximize-2"></i> 解像度: --</span>
+          <span class="badge" id="info-paths"><i data-lucide="git-commit"></i> パス数: --</span>
+        </div>
+        <div class="export-actions">
+          <button id="download-png-btn" class="btn btn-secondary" disabled>
+            <i data-lucide="download"></i> PNGとして保存
+          </button>
+          <button id="download-svg-btn" class="btn btn-primary" disabled>
+            <i data-lucide="file-down"></i> SVGファイルをダウンロード
+          </button>
+        </div>
+      </footer>
+    </main>
+  </div>
+
+  <!-- Loading overlay -->
+  <div id="loading-overlay" class="loading-overlay hidden">
+    <div class="spinner-container">
+      <div class="spinner"></div>
+      <p id="loading-text">WASMモジュールを初期化中...</p>
+    </div>
+  </div>
+
+  <!-- Main script file -->
+</body>
+</html>
