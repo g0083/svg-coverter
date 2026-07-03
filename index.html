@@ -4,14 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OutlineVectorizer - 画像輪郭抽出・SVG変換ツール</title>
+  <!-- PWA Manifest & App configuration -->
+  <link rel="manifest" href="./manifest.webmanifest">
+  <meta name="theme-color" content="#090a12">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Vectorizer">
+  <link rel="apple-touch-icon" href="./icon-192.png">
   <!-- Google Fonts: Outfit for headings, Inter for body -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- Lucide Icons for premium visual feel -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script type="module" crossorigin src="/assets/index-C0nWlAJV.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-BkDzffI8.css">
+  <script type="module" crossorigin src="/assets/index-C9Jwfz3q.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-DsiRfrIa.css">
 </head>
 <body>
   <div class="app-container">
@@ -30,30 +37,39 @@
         <section class="control-card">
           <h2 class="card-title"><i data-lucide="image"></i> 画像の選択</h2>
           
-          <div id="dropzone" class="dropzone">
-            <input type="file" id="file-input" accept="image/*" class="file-input">
-            <div class="dropzone-content">
-              <i data-lucide="upload-cloud" class="upload-icon"></i>
-              <p class="upload-text">画像をドラッグ＆ドロップ</p>
-              <span class="upload-hint">またはファイルを選択（クリップボードから貼り付けも可）</span>
-            </div>
+          <div class="upload-container">
+            <input type="file" id="file-input" accept="image/*" class="file-input" style="display: none;">
+            <button id="upload-btn" class="upload-btn">
+              <i data-lucide="upload-cloud"></i>
+              <span>画像ファイルを開く</span>
+            </button>
+            <p class="upload-hint">画像をプレビュー領域へドラッグ＆ドロップ、またはクリップボードから貼り付けも可能です。</p>
           </div>
 
           <div class="presets-container">
-            <span class="section-label">サンプルで試す:</span>
-            <div class="presets-grid">
-              <button class="preset-btn" data-preset="silhouette" title="シルエット (幾何学パターン)">
-                <canvas id="preset-canvas-silhouette" width="48" height="48"></canvas>
-                <span>幾何学</span>
-              </button>
-              <button class="preset-btn" data-preset="contour" title="輪郭 (花柄)">
-                <canvas id="preset-canvas-contour" width="48" height="48"></canvas>
-                <span>花柄</span>
-              </button>
-              <button class="preset-btn" data-preset="character" title="イラスト (ペン書き線画)">
-                <canvas id="preset-canvas-character" width="48" height="48"></canvas>
-                <span>線画</span>
-              </button>
+            <button id="presets-toggle-btn" class="presets-toggle-btn" type="button">
+              <span class="toggle-btn-left">
+                <i data-lucide="sparkles"></i>
+                <span>サンプル画像で試す</span>
+              </span>
+              <i data-lucide="chevron-down" class="chevron-icon"></i>
+            </button>
+            
+            <div id="presets-panel" class="presets-panel hidden">
+              <div class="presets-grid">
+                <button class="preset-btn" data-preset="silhouette" title="シルエット (幾何学パターン)">
+                  <canvas id="preset-canvas-silhouette" width="48" height="48"></canvas>
+                  <span>幾何学</span>
+                </button>
+                <button class="preset-btn" data-preset="contour" title="輪郭 (花柄)">
+                  <canvas id="preset-canvas-contour" width="48" height="48"></canvas>
+                  <span>花柄</span>
+                </button>
+                <button class="preset-btn" data-preset="character" title="イラスト (ペン書き線画)">
+                  <canvas id="preset-canvas-character" width="48" height="48"></canvas>
+                  <span>線画</span>
+                </button>
+              </div>
             </div>
           </div>
         </section>
@@ -162,6 +178,16 @@
             <input type="range" id="stroke-width-slider" min="0.5" max="10" step="0.1" value="1.5" class="range-slider">
           </div>
         </section>
+
+        <!-- Section 5: PWA Installation -->
+        <section class="control-card pwa-install-card" id="pwa-install-section" style="display: none;">
+          <h2 class="card-title"><i data-lucide="download-cloud"></i> アプリとしてインストール</h2>
+          <p class="control-hint" style="margin-bottom: 12px;">ホーム画面に追加して、オフライン環境でもスタンドアロンのネイティブアプリ感覚でご利用いただけます。</p>
+          <button id="pwa-install-btn" class="upload-btn">
+            <i data-lucide="plus-circle"></i>
+            <span>ホーム画面に追加</span>
+          </button>
+        </section>
       </div>
     </aside>
 
@@ -190,6 +216,13 @@
               <div class="mini-spinner"></div>
               <span>ベクター変換中...</span>
             </div>
+            <!-- Drag & Drop overlay inside viewport -->
+            <div id="viewport-dropzone" class="viewport-dropzone">
+              <div class="viewport-dropzone-content">
+                <i data-lucide="upload-cloud"></i>
+                <p>画像をドロップして読み込み</p>
+              </div>
+            </div>
             <div class="viewport-zoom-layer" id="zoom-layer">
               <div id="svg-preview-container" class="svg-container">
                 <!-- Dynamically inserted SVG goes here -->
@@ -201,6 +234,7 @@
             </div>
             <!-- Interactive Pan/Zoom overlay UI -->
             <div class="viewport-controls">
+              <button id="fullscreen-btn" class="viewport-btn" title="全画面プレビュー"><i data-lucide="maximize"></i></button>
               <button id="zoom-in-btn" class="viewport-btn" title="拡大"><i data-lucide="zoom-in"></i></button>
               <button id="zoom-out-btn" class="viewport-btn" title="縮小"><i data-lucide="zoom-out"></i></button>
               <button id="zoom-reset-btn" class="viewport-btn" title="表示リセット"><i data-lucide="refresh-cw"></i></button>
@@ -245,6 +279,32 @@
         </div>
       </footer>
     </main>
+  </div>
+
+  <!-- iOS PWA Install Guide Modal -->
+  <div id="ios-install-modal" class="ios-modal hidden">
+    <div class="ios-modal-content">
+      <button id="ios-modal-close-btn" class="ios-close-btn">&times;</button>
+      <div class="ios-modal-header">
+        <i data-lucide="smartphone" class="ios-icon"></i>
+        <h3>ホーム画面に追加</h3>
+      </div>
+      <p class="ios-modal-desc">Safariブラウザからホーム画面に追加して、スタンドアロンアプリとして起動できます。</p>
+      <div class="ios-steps">
+        <div class="ios-step">
+          <span class="step-num">1</span>
+          <p>画面下部（iPadは右上）の<strong>共有ボタン</strong>（ <i data-lucide="share-2" class="inline-icon"></i> ）をタップします。</p>
+        </div>
+        <div class="ios-step">
+          <span class="step-num">2</span>
+          <p>メニューをスクロールし、<strong>「ホーム画面に追加」</strong>（ <i data-lucide="plus-square" class="inline-icon"></i> ）を選択します。</p>
+        </div>
+        <div class="ios-step">
+          <span class="step-num">3</span>
+          <p>右上の<strong>「追加」</strong>をタップするとインストールが完了します。</p>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Loading overlay -->
