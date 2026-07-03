@@ -10,8 +10,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <!-- Lucide Icons for premium visual feel -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script type="module" crossorigin src="/assets/index-USoV6Ms3.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-DuKv6Kkc.css">
+  <script type="module" crossorigin src="/assets/index-DdZyRP8u.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-BkDzffI8.css">
 </head>
 <body>
   <div class="app-container">
@@ -185,6 +185,11 @@
         <!-- Tab 1: Live SVG Viewport (with zoom and pan) -->
         <div id="tab-vector" class="tab-content active">
           <div class="viewport-canvas-wrapper" id="viewport-wrapper">
+            <!-- Inline non-blocking loader spinner -->
+            <div id="preview-loader" class="preview-loader hidden">
+              <div class="mini-spinner"></div>
+              <span>ベクター変換中...</span>
+            </div>
             <div class="viewport-zoom-layer" id="zoom-layer">
               <div id="svg-preview-container" class="svg-container">
                 <!-- Dynamically inserted SVG goes here -->
